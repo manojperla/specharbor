@@ -1,0 +1,62 @@
+name: Weekly quick check
+on:
+  schedule:
+    - cron: '13 3 * * 2'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/maintenance.yml'
+      - 'tests/**/*.csproj'
+      - '**/packages.lock.json'
+permissions:
+  contents: read
+jobs:
+  quick-start:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Run documented checks with one retry
+        shell: bash
+        run: |
+          check() (
+            set -e
+            dotnet restore tests/SpecHarbor.Tests --locked-mode
+            python3 -m http.server 8080 --bind 127.0.0.1 --directory demo >/tmp/specharbor-demo.log 2>&1 &
+            server=$!
+            trap 'kill "$server" || true' EXIT
+            curl --retry 8 --retry-connrefused -fsS http://127.0.0.1:8080/ >/dev/null
+            dotnet test tests/SpecHarbor.Tests --no-restore --logger trx --results-directory TestResults
+          )
+          set +e
+          check
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            echo "::warning::Retrying the quick check once"
+            check
+          fi
+  report-failure:
+    if: failure() && needs.quick-start.result == 'failure' && github.event_name == 'schedule'
+    needs: quick-start
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      issues: write
+    steps:
+      - name: Create or update the maintenance issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          title='Weekly specharbor quick-start failure'
+          body="The scheduled clean-install check failed. [Inspect the failing step and commands]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
+          issue=$(gh issue list --state open --search "in:title \"$title\"" --json number,title,author --jq '.[] | select(.title == "Weekly specharbor quick-start failure" and (.author.login == "app/github-actions" or .author.login == "github-actions[bot]")) | .number' | head -1)
+          if [ -n "$issue" ]; then
+            gh issue edit "$issue" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi
