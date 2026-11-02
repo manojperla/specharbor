@@ -1,5 +1,9 @@
 # SpecHarbor
 
+[![Weekly quick check](https://github.com/manojperla/specharbor/actions/workflows/maintenance.yml/badge.svg?branch=main)](https://github.com/manojperla/specharbor/actions/workflows/maintenance.yml)
+
+Every Tuesday, GitHub Actions uses a fresh Linux runner to run the locked Reqnroll suite against local Chrome.
+
 Specification-first acceptance testing with **C#, Selenium, Reqnroll BDD, and Jenkins**.
 
 This reference framework turns documented requirements into executable Gherkin examples. Each scenario gets its own browser session, page objects own UI interactions, and failed scenarios attach screenshots. A bundled task-board demo keeps the suite reproducible.
