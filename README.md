@@ -43,3 +43,17 @@ Add a requirement ID and scenario before a new binding. Prefer explicit waits ov
 
 ## Scope
 The example app is deliberately local, has no accounts or backend, and resets on reload. This is a working starter rather than a claim of production coverage. See [Reqnroll](https://docs.reqnroll.net/) and [Selenium](https://www.selenium.dev/documentation/).
+
+## Runtime configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `BASE_URL` | `http://127.0.0.1:8080` | Address of the task-board demo, reachable from the browser. |
+| `HEADLESS` | Enabled | Set exactly `false` to show local Chrome. |
+| `SELENIUM_REMOTE_URL` | Unset | Use a remote Selenium Grid instead of local Chrome. |
+
+The driver has no implicit wait and a 30-second page-load timeout. Keep element
+readiness checks in page objects so a slow element is diagnosed separately from
+a navigation failure.
+
+See [failure diagnosis](docs/troubleshooting.md) for local and CI checks.
